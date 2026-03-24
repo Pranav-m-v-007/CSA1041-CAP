@@ -1,188 +1,285 @@
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const server = http.createServer((req, res) => {
-res.writeHead(200, {'Content-Type': 'text/html'});
 
-res.end(`
+    // Serve local images
+    if (req.url.startsWith('/images')) {
+        const filePath = path.join(__dirname, req.url);
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.writeHead(404);
+                res.end("Image not found");
+            } else {
+                res.writeHead(200);
+                res.end(data);
+            }
+        });
+        return;
+    }
+
+    res.writeHead(200, {'Content-Type': 'text/html'});
+
+    res.end(`
 <!DOCTYPE html>
 <html>
 <head>
-<title>CI/CD Smart Dashboard</title>
+<title>CI/CD Architecture Dashboard</title>
 
 <style>
 
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
-    background-size: 600% 600%;
-    animation: gradientBG 10s ease infinite;
-    color: white;
+    background: #f4f6f9;
 }
 
-/* Animated Background */
-@keyframes gradientBG {
-    0% {background-position: 0%}
-    50% {background-position: 100%}
-    100% {background-position: 0%}
-}
-
+/* TITLE */
 h1 {
     text-align: center;
     padding: 20px;
-    font-size: 42px;
-    letter-spacing: 2px;
+    font-size: 38px;
 }
 
-/* Pipeline Flow */
-.pipeline {
+/* ARCHITECTURE */
+.architecture {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    margin: 30px;
-    flex-wrap: wrap;
-}
-
-.step {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
-    padding: 15px 25px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgba(0,255,255,0.4);
-    transition: 0.4s;
+    margin: 80px 20px;
     position: relative;
 }
 
-.step:hover {
-    transform: scale(1.15);
-    box-shadow: 0 0 25px cyan;
-}
-
-/* Arrow animation */
-.step::after {
-    content: "→";
+.line {
     position: absolute;
-    right: -20px;
     top: 50%;
-    transform: translateY(-50%);
-    animation: blink 1s infinite;
+    left: 5%;
+    right: 5%;
+    height: 4px;
+    background: #ccc;
+    z-index: -1;
 }
 
-.step:last-child::after {
-    content: "";
-}
-
-@keyframes blink {
-    0% {opacity: 0;}
-    50% {opacity: 1;}
-    100% {opacity: 0;}
-}
-
-/* Status pulse */
-.status {
-    width: 10px;
-    height: 10px;
-    background: lime;
+.dot {
+    position: absolute;
+    top: calc(50% - 6px);
+    width: 12px;
+    height: 12px;
+    background: #007bff;
     border-radius: 50%;
-    display: inline-block;
-    margin-left: 10px;
-    animation: pulse 1.5s infinite;
+    animation: flow 8s linear infinite;
 }
 
-@keyframes pulse {
-    0% {transform: scale(1);}
-    50% {transform: scale(1.5);}
-    100% {transform: scale(1);}
+@keyframes flow {
+    0% { left: 5%; }
+    100% { left: 95%; }
 }
 
-/* Cards */
-.container {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin-top: 50px;
-    flex-wrap: wrap;
-}
-
-.card {
-    width: 220px;
+/* NODE */
+.node {
+    background: white;
     padding: 20px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(12px);
+    width: 140px;
     text-align: center;
-    transition: 0.5s;
-    box-shadow: 0 0 20px rgba(0,255,255,0.2);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: 0.3s;
+    cursor: pointer;
+    position: relative;
 }
 
-.card:hover {
-    transform: rotateY(10deg) scale(1.1);
-    box-shadow: 0 0 30px cyan;
+.node:hover {
+    transform: translateY(-10px) scale(1.05);
 }
 
-.card img {
-    width: 100px;
-    height: 100px;
+.node img {
+    width: 60px;
+    height: 60px;
+}
+
+.node h3 {
+    margin: 10px 0;
+}
+
+/* POPUP */
+.popup {
+    position: absolute;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    width: 230px;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: 0.4s;
+}
+
+.node:hover .popup {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+
+/* PERSON SECTION */
+.person {
+    width: 90%;
+    margin: 50px auto;
+    padding: 40px;
+    border-radius: 20px;
+    background: white;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    transition: 0.4s;
+}
+
+.person:hover {
+    transform: scale(1.03);
+}
+
+/* IMAGE */
+.person img {
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
-    margin-bottom: 10px;
-    border: 3px solid cyan;
+    margin-right: 40px;
+    object-fit: cover;
+    border: 4px solid #ddd;
 }
 
-/* Footer */
+/* DETAILS */
+.details {
+    flex: 1;
+}
+
+.details h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.details p {
+    margin: 5px 0;
+}
+
+/* HIDDEN INFO */
+.extra {
+    max-height: 0;
+    overflow: hidden;
+    transition: 0.5s;
+}
+
+.person:hover .extra {
+    max-height: 300px;
+}
+
+/* FOOTER */
 .footer {
     text-align: center;
-    margin: 40px;
-    font-size: 18px;
-    opacity: 0.8;
+    padding: 30px;
+    color: #777;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>CI/CD Automation Dashboard</h1>
+<h1>CI/CD System Architecture</h1>
 
-<div class="pipeline">
-    <div class="step">GitHub <span class="status"></span></div>
-    <div class="step">GitHub Actions <span class="status"></span></div>
-    <div class="step">Docker Build <span class="status"></span></div>
-    <div class="step">Jenkins Deploy <span class="status"></span></div>
-    <div class="step">Live App <span class="status"></span></div>
+<div class="architecture">
+
+    <div class="line"></div>
+    <div class="dot"></div>
+
+    <div class="node">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg">
+        <h3>GitHub</h3>
+        <div class="popup">
+            Developer pushes code to repository.
+        </div>
+    </div>
+
+    <div class="node">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/githubactions/githubactions-original.svg">
+        <h3>Actions</h3>
+        <div class="popup">
+            CI pipeline builds and tests code.
+        </div>
+    </div>
+
+    <div class="node">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg">
+        <h3>Docker</h3>
+        <div class="popup">
+            Application is containerized.
+        </div>
+    </div>
+
+    <div class="node">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jenkins/jenkins-original.svg">
+        <h3>Jenkins</h3>
+        <div class="popup">
+            Pulls image and runs deployment.
+        </div>
+    </div>
+
+    <div class="node">
+        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828640.png">
+        <h3>Deploy</h3>
+        <div class="popup">
+            App runs on localhost:3000
+        </div>
+    </div>
+
 </div>
 
-<h1>Team Members</h1>
-
-<div class="container">
-
-<div class="card">
-<img src="https://i.pravatar.cc/100?img=1">
-<h3>Pranav</h3>
-<p>Roll No: 101</p>
-<p>Age: 21</p>
-<p>Role: DevOps Engineer</p>
+<!-- PERSON 1 -->
+<div class="person">
+    <img src="/images/pranav.jpg">
+    <div class="details">
+        <h2>Pranav M V</h2>
+        <p><b>Department:</b> B.E CSE</p>
+        <div class="extra">
+            <p><b>Roll No:</b> 192411030</p>
+            <p><b>Age:</b> 19</p>
+            <p>Module 3: Optimization and Version Control</p>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-<img src="https://i.pravatar.cc/100?img=2">
-<h3>Friend 2</h3>
-<p>Roll No: 102</p>
-<p>Age: 21</p>
-<p>Role: Backend Developer</p>
+<!-- PERSON 2 -->
+<div class="person">
+    <img src="/images/friend2.jpg">
+    <div class="details">
+        <h2>Sam Aakash Priyan S</h2>
+        <p><b>Department:</b> B.Tech Information Technology</p>
+        <div class="extra">
+            <p><b>Roll No:</b> 192421312</p>
+            <p><b>Age:</b> 19</p>
+            <p>Module 2: Jenkins Integration & Deployment</p>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-<img src="https://i.pravatar.cc/100?img=3">
-<h3>Friend 3</h3>
-<p>Roll No: 103</p>
-<p>Age: 22</p>
-<p>Role: Cloud Engineer</p>
-</div>
-
+<!-- PERSON 3 -->
+<div class="person">
+    <img src="/images/friend3.jpg">
+    <div class="details">
+        <h2>Ashton Sam J</h2>
+        <p><b>Department:</b> B.E AI-ML</p>
+        <div class="extra">
+            <p><b>Roll No:</b> 192472168</p>
+            <p><b>Age:</b> 19</p>
+            <p>Module 1: GitHub-Based CI/CD Workflow Automation</p>
+        </div>
+    </div>
 </div>
 
 <div class="footer">
-Automated using GitHub | Docker | Jenkins
+CI/CD using GitHub, Docker, Jenkins
 </div>
 
 </body>
@@ -191,5 +288,5 @@ Automated using GitHub | Docker | Jenkins
 });
 
 server.listen(3000, () => {
-console.log("Server running at http://localhost:3000");
+    console.log("Server running at http://localhost:3000");
 });
